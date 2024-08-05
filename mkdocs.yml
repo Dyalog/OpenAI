@@ -1,0 +1,60 @@
+site_name: OpenAI
+repo_url: https://github.com/dyalog/OpenAI
+repo_name: Dyalog/HttpCommand
+dev_addr: 127.0.0.1:22222
+copyright: Made with <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener"><strong>Material for MkDocs</strong></a><br/>Copyright &copy; 2015-2024 <strong><a href="https://dyalog.com" target="_blank" rel="noopener">Dyalog, LTD</a></strong>
+nav:
+    - Overview: 'index.md'
+    - 'User Guide': 'userguide.md'
+    - Reference: 'reference.md'
+    - About: 
+      - License: 'LICENSE.md' # complete
+      - 'Release Notes': 'release-notes.md'
+
+theme:
+  favicon: 'img/favicon-32.png'
+  logo: 'img/dyalog-white.svg'
+  features:
+    - navigation.sections
+    - navigation.instant
+  name: material
+
+extra: 
+  generator: false
+  version:
+    provider: mike
+
+extra_css:
+  - css/main.css
+
+plugins:
+  - search
+  - print-site:
+      add_to_navigation: true
+      print_page_title: 'Print'
+      add_print_site_banner: false
+      # Table of contents
+      add_table_of_contents: false
+      toc_title: 'Table of Contents'
+      toc_depth: 6
+      # Content-related
+      add_full_urls: false
+      enumerate_headings: false
+      enumerate_figures: false
+      add_cover_page: true
+      cover_page_template: ""
+      path_to_pdf: ""
+      include_css: true
+      enabled: true
+      exclude:
+
+markdown_extensions:
+  - admonition
+  - abbr
+  - footnotes
+  - attr_list 
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - toc:
+      title: On this page

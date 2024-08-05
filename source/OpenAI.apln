@@ -1,0 +1,723 @@
+:Namespace OpenAI
+⍝ This class implements an interface to the OpenAI API
+⍝ Requires: HttpCommand v5.6 or later
+
+    (⎕ML ⎕IO)←1
+    APIKey←''                             ⍝ an API key is required to use the OpenAI API
+    BaseURL←'https://api.openai.com/v1/'  ⍝ all endpoints start here
+    HttpCommand←''
+    Initialized←0
+
+    ∇ (rc msg)←Initialize
+      rc←¯1
+      :If Initialized
+          (rc msg)←0 'Already initialized'
+      :Else
+          :If ''≡HttpCommand
+              :If 0≠##.⎕NC'HttpCommand'      ⍝ HttpCommand found in the parent?
+                  HttpCommand←##.HttpCommand ⍝ use it
+              :Else
+                  :Trap 0
+                      ⎕SE.SALT.Load'HttpCommand' ⍝ otherwise load it
+                      :If 0>⊃HttpCommand.Upgrade ⍝ and upgrade it
+                          msg←'Unable to upgrade HttpCommand'
+                          →0
+                      :EndIf
+                  :Else
+                      msg←'Error loading HttpCommand: ',∊⍕⎕DMX.(EM Message)
+                  :EndTrap
+              :EndIf
+          :EndIf
+      :EndIf
+      :If 1=5 6(×2⊥×⍤-)2↑2⊃'.'⎕VFI 2⊃HttpCommand.Version
+          msg←'HttpCommand version 5.6 or later is required'
+      :Else
+          (rc msg)←0 'Initialized'
+          Initialized←1
+      :EndIf
+    ∇
+
+    ∇ resp←models;req
+    ⍝ return information about OpenAI models
+      :Access public shared
+      :If ~Initialized
+          Initialize
+      :EndIf
+      req←HttpCommand.New'get'
+      req.(BaseURL URL)←BaseURL'models'
+      req.(AuthType Auth)←'Bearer'APIKey
+      req.TranlateData←1
+      resp←req.Run
+    ∇
+
+    :namespace U ⍝ utilities
+
+        ∇ r←MakeParams params;param;value
+        ⍝ makes parameters namespace from list of API_Parameters for each endpoint
+          r←⎕NS''
+          :For param :In params
+              :Trap 6 ⍝ skip undefined parameters
+                  :If ~0∊⍴value←⍎param
+                      r(param{⍺⍎⍺⍺,'←⍵'})⍎param
+                  :EndIf
+              :EndTrap
+          :EndFor
+        ∇
+
+        ∇ r←MakeRequest endpoint
+        ⍝ creates the HttpCommand instance for a request
+          r←parent.HttpCommand.New'post'
+          r.Timeout←¯30
+          r.BaseURL←parent.BaseURL
+          r.URL←endpoint
+          r.(AuthType Auth)←'Bearer'parent.APIKey
+        ∇
+
+          wrap←{⎕IO←0                     ⍝ Wrap word vector at ⍺ cols.
+              ⍺←⎕PW                       ⍝ default ⎕PW-wrap.
+              ⍺≥⍴⍵:⍵                      ⍝ short enough vector: finished.
+              gaps←⍸' '=(⍺+1)↑⍵           ⍝ indices of blanks.
+              take←¯1↑⍺,(⍺≥gaps)/gaps     ⍝ chars to take.
+              drop←take+' '=take⊃⍵        ⍝ chars to drop.
+              head←(take↑⍵),⎕UCS 13       ⍝ first line and <LF> then,
+              head,⍺ ∇ drop↓⍵             ⍝ wrapped following lines.
+          }
+
+        isChar←{0 2∊⍨10|⎕DR ⍵}
+
+    :endnamespace
+
+    :class Image
+
+        :include U
+
+        :field public prompt←''
+        :field public model←'dall-e-2'      ⍝ 'dall-e-2' or 'dall-e-3'
+        :field public n←1                   ⍝ integer 1-10, dall-e-3 can only use 1
+        :field public quality←'standard'    ⍝ dall-e-3 only, 'standard' or 'hd'
+        :field public response_format←'url' ⍝ 'url' or 'b64_json'
+        :field public size←'1024x1024'      ⍝ dall-e-2: 256x256, 512x512, 1024x1024; dall-e-3: 1024x1024, 1792x1024, 1024x1792
+        :field public style←'vivid'         ⍝ 'vivid' or 'natural'
+        :field public user←''               ⍝ unique identifier for end-user if applicable
+        :field public image←''              ⍝ filename for image edit and variation endpoints
+
+        :field public OutFile←''            ⍝ filename to write image to (a la HttpCommand)
+        :field public Response←''           ⍝ response from HttpCommand
+
+        :field public API_Parameters
+        :field endpoint                     ⍝ which endpoint?  create, edit, or vary?
+
+        ∇ make
+          :Access public
+          :Implements constructor
+          makeCommon
+        ∇
+
+        ∇ make1 args
+          :Access public
+          :Implements constructor
+          makeCommon
+          endpoint←args
+        ∇
+
+        ∇ makeCommon
+          parent←(⊃⊃⎕CLASS ⎕THIS).##
+          :If ~parent.Initialized
+              parent.Initialize
+          :EndIf
+        ∇
+
+        ∇ r←Create args;name
+        ⍝ create a new image
+          :Access public shared
+          r←⎕NEW ⎕THIS'images/generations'
+          :If 9.1={⎕NC⊂,'⍵'}args ⍝ namespace?
+              :For name :In args.⎕NL ¯2
+                  r⍎name,'←args,',name
+              :EndFor
+          :Else
+              args←,⊆args
+              r.(prompt OutFile style)←3↑args,(≢args)↓r.(prompt OutFile style)
+          :EndIf
+          r.API_Parameters←'prompt' 'model' 'n' 'quality' 'response_format' 'size' 'style' 'user'
+        ∇
+
+        ∇ r←Edit args
+        ⍝ edit an existing image
+          :Access public shared
+          r←⎕NEW ⎕THIS'images/edits'
+          :If 9.1={⎕NC⊂,'⍵'}args ⍝ namespace?
+              :For name :In args.⎕NL ¯2
+                  r⍎name,'←args,',name
+              :EndFor
+          :Else
+              args←,⊆args
+              r.(image prompt)←2↑args,(≢args)↓r.(image prompt)
+          :EndIf
+          r.API_Parameters←'image' 'prompt' 'mask' 'model' 'n' 'response_format' 'size' 'user'
+        ∇
+
+        ∇ r←Vary args
+          :Access public shared
+          r←⎕NEW ⎕THIS'images/variations'
+          :If 9.1={⎕NC⊂,'⍵'}args ⍝ namespace?
+              :For name :In args.⎕NL ¯2
+                  r⍎name,'←args,',name
+              :EndFor
+          :Else
+              args←,⊆args
+              r.(image n)←2↑args,(≢args)↓r.(image n)
+          :EndIf
+          r.API_Parameters←'image' 'model' 'n' 'response_format' 'size' 'user'
+        ∇
+
+        ∇ r←Run;req;f
+          :Access public
+          req←MakeRequest endpoint
+          :If (⊂endpoint)∊'images/edits' 'images/variations'
+              req.ContentType←'multipart/form-data'
+              image←'@',f←image~'@'
+              :If ~⎕NEXISTS f
+                  ('File not found: "',f,'"')⎕SIGNAL 22
+              :EndIf
+          :EndIf
+          req.TranslateData←1
+          req.OutFile←OutFile
+          req.Params←MakeParams API_Parameters
+          r←Response←req.Run
+        ∇
+
+        ∇ Show;s;url;refs;ref;img
+          :Access public
+          :If 0∊⍴Response
+              Run
+          :EndIf
+          :If Response.IsOK
+              s←2⊃'x'⎕VFI size
+              url←(⊂,⊂'url')∊Response.Data.data.⎕NL ¯2
+              refs←Response.Data.data⍎¨'b64_json' 'url'[1+url]
+              Renderers←⍬
+              img←{'<img src="data:image/png;base64,',⍵,'"/>'}
+              :For ref :In refs
+                  :If url
+                      Renderers,←⎕NEW'HTMLRenderer'(('URL'ref)('Size'(100 100)))
+                  :Else
+                      Renderers,←⎕NEW'HTMLRenderer'(('HTML'(img ref))('Size'(100 100)))
+                  :EndIf
+              :EndFor
+          :Else
+              ⎕←Response
+          :EndIf
+        ∇
+
+
+    :endclass
+
+    :class Audio
+
+        :include U
+
+        :field public input←''              ⍝ text input to generate audio for
+        :field public model←''              ⍝ endpoint dependent
+        :field public voice←'alloy'         ⍝ 'alloy', 'echo', 'fable', 'onyx', 'nova' or 'shimmer'
+        :field public response_format←''    ⍝ endpoint dependent
+        :field public speed←1               ⍝ 0.25 ≤ speed ≤ 4.0
+        :field public file←''
+        :field public language←''
+        :field public prompt←''
+        :field public temperature←0
+        :field public timestamp_granularities←,⊂'segment'
+
+
+        :field public OutFile←''            ⍝ filename to write image to (a la HttpCommand)
+        :field public Response←''
+
+        :field public API_Parameters
+        :field endpoint                     ⍝ which endpoint?  create, edit, or vary?
+
+        ∇ make
+          :Access public
+          :Implements constructor
+          makeCommon
+        ∇
+
+        ∇ make1 args
+          :Access public
+          :Implements constructor
+          makeCommon
+          endpoint←args
+        ∇
+
+        ∇ makeCommon
+          parent←(⊃⊃⎕CLASS ⎕THIS).##
+          :If ~parent.Initialized
+              parent.Initialize
+          :EndIf
+        ∇
+
+        ∇ r←Speech args;name
+          :Access public shared
+          r←⎕NEW ⎕THIS'audio/speech'
+          r.model←'tts-1' ⍝ 'tts-1' or 'tts-2'
+          r.response_format←'mp3' ⍝ mp3, opus, aac, flac, wav, and pcm
+          :If 9.1={⎕NC⊂,'⍵'}args ⍝ namespace?
+              :For name :In args.⎕NL ¯2
+                  r⍎name,'←args,',name
+              :EndFor
+          :Else
+              args←,⊆args
+              r.(input OutFile voice)←3↑args,(≢args)↓r.(input OutFile voice)
+          :EndIf
+          r.API_Parameters←'input' 'model' 'voice' 'response_format' 'speed'
+        ∇
+
+        ∇ r←Transcription args;name
+          :Access public shared
+          r←⎕NEW ⎕THIS'audio/transcriptions'
+          r.model←'whisper-1' ⍝ only choice at present
+          r.response_format←'json' ⍝ json, text, srt, verbose_json, or vtt
+          :If 9.1={⎕NC⊂,'⍵'}args ⍝ namespace?
+              :For name :In args.⎕NL ¯2
+                  r⍎name,'←args,',name
+              :EndFor
+          :Else
+              args←,⊆args
+              r.(file OutFile)←2↑args,(≢args)↓r.(file OutFile)
+          :EndIf
+          r.API_Parameters←'file' 'model' 'language' 'prompt' 'response_format' 'tempurature' 'timestamp_granularities'
+        ∇
+
+        ∇ r←Translation args;name
+          :Access public shared
+          r←⎕NEW ⎕THIS'audio/translations'
+          r.model←'whisper-1' ⍝ only choice at present
+          r.response_format←'json' ⍝ json, text, srt, verbose_json, or vtt
+          :If 9.1={⎕NC⊂,'⍵'}args ⍝ namespace?
+              :For name :In args.⎕NL ¯2
+                  r⍎name,'←args,',name
+              :EndFor
+          :Else
+              args←,⊆args
+              r.(file OutFile)←2↑args,(≢args)↓r.(file OutFile)
+          :EndIf
+          r.API_Parameters←'file' 'model' 'prompt' 'response_format' 'tempurature'
+        ∇
+
+        ∇ resp←Run;req;f;ext;outfile;flag
+          :Access public
+          req←MakeRequest endpoint
+          :If (⊂endpoint)∊'audio/transcriptions' 'audio/translations'
+              req.ContentType←'multipart/form-data'
+              file←'@',f←file~'@'
+              :If ~⎕NEXISTS f
+                  ('File not found: "',f,'"')⎕SIGNAL 22
+              :EndIf
+          :ElseIf endpoint≡'audio/speech'
+              :If ~0∊⍴OutFile ⍝ check file extension and adjust response_format if necessary
+                  (outfile flag)←2↑(⊆OutFile),¯1
+                  ext←1↓⊃⊢/⎕NPARTS outfile
+                  :If 0∊⍴ext
+                      outfile,←'.',response_format
+                      :If flag=¯1
+                          OutFile←outfile
+                      :Else
+                          OutFile←outfile flag
+                      :EndIf
+                  :Else
+                      ('Invalid audio file extension "',ext,'"')⎕SIGNAL 22/⍨~(⊂ext)∊'mp3' 'opus' 'aac' 'flac' 'wav' 'pcm'
+                      response_format←ext
+                  :EndIf
+              :EndIf
+          :EndIf
+          req.TranslateData←1
+          req.OutFile←OutFile
+          req.Params←MakeParams API_Parameters
+          resp←Response←req.Run
+        ∇
+
+        ∇ r←Show
+          :Access public
+          r←⎕JSON⍠'Compact' 0⊢Response.Data
+        ∇
+
+    :endclass
+
+    :class Chat
+        :include U
+
+        :field public messages←''           ⍝ list of messages comprising the conversation so far
+        :field public model←'gpt-3.5-turbo' ⍝ see https://platform.openai.com/docs/models/model-endpoint-compatibility for all models
+        :field public frequency_penalty←0   ⍝ ¯2.0 ≤ frequency_penalty ≤ 2.0
+        :field public logit_bias←''         ⍝ modifies the likelihood of specified tokens appearing in the completion.
+        :field public logprobs←0            ⍝ true/false
+        :field public top_logprobs←⍬        ⍝ 0 ≤ top_logprobs ≤ 20
+        :field public max_tokens←⍬          ⍝ maximum tokens that can be generated in chat completion
+        :field public n←1                   ⍝ how many chat completion choices to generate
+        :field public presence_penalty←⍬    ⍝ ¯2.0 ≤ presence_penalty ≤ 2.0
+        :field public response_format←'text'⍝ 'text' or 'json_object'
+        :field public seed←⍬                ⍝ integer or null
+        :field public stop←⍬                ⍝ string, array or null - sequences where the API will stop generating further tokens
+        :field public stream←0              ⍝ true/false
+        :field public temperature←0         ⍝ 0 ≤ temperature ≤ 2
+        :field public top_p←1
+        :field public tools←⍬
+        :field public tool_choice←''
+        :field public user←''
+
+
+        :field public OutFile←''            ⍝ filename to write image to (a la HttpCommand)
+        :field public Response←''
+        :field public Width←80              ⍝ conversation wrap width⌈
+
+        :field public API_Parameters←'messages' 'model' 'frequency_penalty' 'logit_bias' 'logprobs' 'top_logprobs' 'max_tokens' 'n' 'presence_penalty' 'response_format' 'seed' 'stop' 'stream' 'temperature' 'top_p' 'tools' 'tool_choice' 'user'
+        :field endpoint←'chat/completions'
+
+        ∇ make
+          :Access public
+          :Implements constructor
+          makeCommon
+        ∇
+
+        ∇ makeCommon
+          parent←(⊃⊃⎕CLASS ⎕THIS).##
+          :If ~parent.Initialized
+              parent.Initialize
+          :EndIf
+        ∇
+
+        ∇ r←Completion args;name;system;user
+          :Access public shared
+          r←⎕NEW ⎕THIS
+          :If 9.1={⎕NC⊂,'⍵'}args ⍝ namespace?
+              :For name :In args.⎕NL ¯2
+                  r⍎name,'←args,',name
+              :EndFor
+          :Else
+              args←,⊆args
+              (system user)←2↑args,(≢args)↓'' ''
+              r.System system
+              r.User user
+          :EndIf
+        ∇
+
+        ∇ System args;name;content;m
+          :Access public
+          (content name)←2↑(⊆args),⊂''
+          :If ~0∊⍴content
+              m←⎕NS''
+              m.content←content
+              m.role←'system'
+              :If ~0∊⍴name
+                  m.name←name
+              :EndIf
+              messages,←m
+          :EndIf
+        ∇
+
+        ∇ User args;name;content;m
+          :Access public
+          (content name)←2↑(⊆args),⊂''
+          :If ~0∊⍴content
+              m←⎕NS''
+              m.content←content
+              m.role←'user'
+              :If ~0∊⍴name
+                  m.name←name
+              :EndIf
+              messages,←m
+          :EndIf
+        ∇
+
+        ∇ resp←Run;req;f;ns
+          :Access public
+          req←MakeRequest endpoint
+          req.TranslateData←1
+          req.OutFile←OutFile
+          ⍝ convert true/false paramters to JSON
+          logprobs←⊆(0 1⍳logprobs)⊃'false' 'true'logprobs
+          stream←⊆(0 1⍳stream)⊃'false' 'true'stream
+          :If 9≠{⎕NC'⍵'}response_format
+              ns←⎕NS''
+              ns.type←response_format
+              response_format←ns
+          :EndIf
+          req.Params←MakeParams API_Parameters
+          resp←Response←req.Run
+          :If resp.IsOK ⍝ if valid response, add new messages to conversation
+              messages,←resp.Data.choices.message
+          :EndIf
+        ∇
+
+        ∇ r←Conversation
+          :Access public
+          r←Width wrap¨↑messages.(role content)
+        ∇
+
+    :endclass
+
+    :class Files
+
+        :include U
+
+        :field public file←''               ⍝ file name for Upload
+        :field public file_id←''            ⍝ file_id for Retrieve, RetrieveContent, and Delete
+        :field public OutFile←''            ⍝ for retrieving a file to file instead of to the workspace
+
+        :property id, bytes, created_at, filename, object
+        :access public
+            ∇ r←Get ipa
+              r←⍎'_',ipa.Name
+            ∇
+        :endproperty
+
+        :property purpose
+        :access public
+            ∇ r←Get ipa
+              r←_purpose
+            ∇
+            ∇ Set ipa
+              'Cannot set purpose for retrieved file'⎕SIGNAL 11⌿⍨retrieved
+              _purpose←ipa.NewValue          ⍝ one of 'assistants' 'fine-tune' 'vision' or 'batch'
+            ∇
+        :endproperty
+
+
+        :field public API_Parameters
+        :field endpoint                     ⍝ upload, list, retrieve, delete, retrieve_content
+        :field retrieved←0
+
+        ⍝ "internal" (not settable) file object properties
+        :field _id←''
+        :field _bytes←0
+        :field _created_at←0
+        :field _filename←''
+        :field _object←'file'
+        :field _purpose←''
+
+        ∇ make
+          :Access public
+          :Implements constructor
+          makeCommon
+        ∇
+
+        ∇ make1 args
+          :Access public
+          :Implements constructor
+          makeCommon
+          endpoint←args
+        ∇
+
+        ∇ makeCommon
+          parent←(⊃⊃⎕CLASS ⎕THIS).##
+          :If ~parent.Initialized
+              parent.Initialize
+          :EndIf
+        ∇
+
+        ∇ r←Upload args;name
+          :Access public shared
+          r←⎕NEW ⎕THIS'upload'
+          :If 9.1={⎕NC⊂,'⍵'}args ⍝ namespace?
+              :For name :In args.⎕NL ¯2
+                  r⍎name,'←args,',name
+              :EndFor
+          :Else
+              args←,⊆args
+              r.(purpose file)←2↑args,(≢args)↓r.(purpose file)
+          :EndIf
+          r.API_Parameters←'purpose' 'file'
+        ∇
+
+        ∇ r←Retrieve id
+          :Access public shared
+          r←⎕NEW ⎕THIS'retrieve'
+          file_id←id
+        ∇
+
+        ∇ r←List purpose;req
+          :Access public shared
+          r←⎕NEW ⎕THIS'list'
+          r.purpose←purpose
+          r.API_Parameters←'purpose'
+        ∇
+
+        ∇ r←Delete id
+          :Access public shared
+          r←⎕NEW ⎕THIS'delete'
+          file_id←id
+        ∇
+
+        ∇ r←RetrieveContent args
+          :Access public shared
+          r←⎕NEW ⎕THIS'retrieveContent'
+          args←,⊆args
+          (file_id OutFile)←2↑(≢args)↓'' ''
+          file_id←id
+        ∇
+
+        ∇ resp←Run;req;f;ext;outfile;flag
+          :Access public
+          req←MakeRequest endpoint
+          req.URL←'files'
+          req.TranslateData←1
+          req.Params←MakeParams API_Parameters
+          :Select endpoint
+          :Case 'upload'
+              req.Command←'post'
+              req.ContentType←'multipart/form-data'
+              file←'@',f←file~'@'
+              :If ~⎕NEXISTS f
+                  ('File not found: "',f,'"')⎕SIGNAL 22
+              :EndIf
+          :Case 'list'
+              req.Command←'get'
+          :Case 'retrieve'
+              req.Command←'get'
+              req.URL←'files/',file_id
+          :Case 'delete'
+              req.Command←'delete'
+              req.URL←'files/',file_id
+          :Case 'retrieveContent'
+              req.Command←'get'
+              req.URL←'files/',file_id,'/content'
+              req.OutFile←OutFile
+          :EndSelect
+         
+          resp←Response←req.Run
+         
+          :If resp.IsOK
+              :Select endpoint
+              :Case 'list'
+                  resp←resp.Data.data
+              :Case 'retrieve'
+                  retrieved←1
+                  (_id _bytes _created_at _filename _object _purpose)←resp.Data.(id bytes created_at filename object purpose)
+              :EndSelect
+          :EndIf
+        ∇
+
+        ∇ r←Show;ns
+          :Access public
+        ⍝ display the current file object
+          ns←⎕NS''
+          ns.(_id _bytes _created_at _filename _object _purpose)←_id _bytes _created_at _filename _object _purpose
+          r←⎕JSON⍠'Compact' 0⊢ns
+        ∇
+
+    :endclass
+
+    :class Assistants
+        :include U
+
+        :property model, name, decription, instructions, tools, tool_resources, metadata, temperature, top_p, response_format, created_at
+        :access public
+            ∇ r←Get ipa
+              r←⍎'_',ipa.Name
+            ∇
+            ∇ Set ipa;v
+              :Select ipa.Name
+              :CaseList 'model' 'name' 'description' 'instructions' 'temperature' 'top_p' 'response_format'
+                  v←⍎'_',ipa.Name
+                  ⍎'_',ipa.Name,'←ipa.NewValue'
+                  updated←v≢ipa.NewValue
+              :Case 'tools'
+              :Case 'tool_resources'
+              :Case 'metadata'
+              :Case 'created_at'
+              :EndSelect
+            ∇
+        :endproperty
+
+        :field _model←'gpt-4o-mini'   ⍝ see https://platform.openai.com/docs/models/model-endpoint-compatibility for all models
+        :field _name←''
+        :field _description←''
+        :field _instructions←''
+        :field _tools
+        :field _tool_resources←⍬
+        :field _metadata
+        :field _temperature←1
+        :field _top_p←1
+        :field _response_format←'auto'
+        :field _created_at←0
+
+        _updated←0    ⍝ have we updated any parameters
+        _retrieved←0  ⍝ did we retrieve an existing assistant
+
+
+        :field public API_Parameters
+        :field endpoint←'assistants'
+        :field created←0
+
+        ∇ make
+          :Access public
+          :Implements constructor
+          makeCommon
+        ∇
+
+        ∇ makeCommon;parent
+          parent←(⊃⊃⎕CLASS ⎕THIS).##
+          :If ~parent.Initialized
+              parent.Initialize
+          :EndIf
+          _metadata←⎕NS''
+          _tools←⍬
+        ∇
+
+        ∇ (rc data)←Create;h
+          :Access public
+          h←MakeRequest'assistants'
+          h.Command←'post'
+          'OpenAI-Beta'h.AddHeader'assistants=v2'
+          h.Params←MakeParameters'model' 'name' 'description' 'instructions' 'tools' 'tool_resources' 'metadata' 'temperature' 'top_p' 'response_format'
+          ∘∘∘
+        ∇
+
+        ∇ (rc data)←List args;limit;order;after;before
+          :Access public shared
+        ⍝ args is either
+        ⍝   limit, order, after, before - all are optional, but positional
+        ⍝   a namespace with named parameters
+          args←,⊆args
+          (limit order after before)←
+         
+        ∇
+
+        ∇ (rc data)←Retrieve id
+          :Access public
+        ∇
+
+        ∇ (rc data)←Modify
+          :Access public
+        ∇
+
+        ∇ (rc data)←Delete id
+          :Access public
+        ∇
+
+        ∇ (rc data)←Add_function args;name;description;parms;ns
+          :Access public
+          args←,⊆args
+          (name description parms)←3↑args,(≢args)↓'' ''(⎕NS'')
+          :If isChar parms
+              parms←0 ⎕JSON parms
+          :EndIf
+          ns←⎕NS''
+          ns.type←'function'
+          ns.function←⎕NS''
+          ns.function.(name description parameters)←name description parms
+          tools,←ns
+        ∇
+
+        ∇ (rc data)←Add_code_interpreter
+          :Access public
+          tools,←0 ⎕JSON'{"type":"code_interpreter"}'
+        ∇
+
+        ∇ (rc data)←Add_file_search max_num_results
+          :Access public
+          tools,←0 ⎕JSON'{"type":"file_search"'((~0∊⍴max_num_results)/',"max_num_results":',⍕max_num_results),'}'
+        ∇
+
+    :endclass ⍝ assistants
+
+:EndNamespace

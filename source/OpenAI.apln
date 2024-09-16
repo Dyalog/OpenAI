@@ -1,4 +1,4 @@
-:Namespace OpenAI
+﻿:Namespace OpenAI
 ⍝ This class implements an interface to the OpenAI API
 ⍝ Requires: HttpCommand v5.6 or later
 
@@ -73,6 +73,21 @@
           r.(AuthType Auth)←'Bearer'parent.APIKey
         ∇
 
+        ∇ r←Parameters;nl2
+          :Access public
+          nl2←(⊂'API_Parameters')~⍨API_Parameters,(⎕NEW⊃⊃⎕CLASS ⎕THIS).(⎕A ⎕NL ¯2)
+          r←nl2,⍪⍎¨nl2
+        ∇
+
+        ∇ r←Show
+          :Access public
+          :If Response≡''
+              r←'No moderation has been run'
+          :Else
+              r←⎕JSON⍠'Compact' 0⊢Response.Data
+          :EndIf
+        ∇
+
           wrap←{⎕IO←0                     ⍝ Wrap word vector at ⍺ cols.
               ⍺←⎕PW                       ⍝ default ⎕PW-wrap.
               ⍺≥⍴⍵:⍵                      ⍝ short enough vector: finished.
@@ -85,27 +100,28 @@
 
         isChar←{0 2∊⍨10|⎕DR ⍵}
 
-    :endnamespace
+    :EndNamespace
 
-    :class Image
+    :Class Image
 
-        :include U
+        :Include U
 
-        :field public prompt←''
-        :field public model←'dall-e-2'      ⍝ 'dall-e-2' or 'dall-e-3'
-        :field public n←1                   ⍝ integer 1-10, dall-e-3 can only use 1
-        :field public quality←'standard'    ⍝ dall-e-3 only, 'standard' or 'hd'
-        :field public response_format←'url' ⍝ 'url' or 'b64_json'
-        :field public size←'1024x1024'      ⍝ dall-e-2: 256x256, 512x512, 1024x1024; dall-e-3: 1024x1024, 1792x1024, 1024x1792
-        :field public style←'vivid'         ⍝ 'vivid' or 'natural'
-        :field public user←''               ⍝ unique identifier for end-user if applicable
-        :field public image←''              ⍝ filename for image edit and variation endpoints
+        :Field public prompt←''
+        :Field public model←'dall-e-2'      ⍝ 'dall-e-2' or 'dall-e-3'
+        :Field public n←1                   ⍝ integer 1-10, dall-e-3 can only use 1
+        :Field public quality←'standard'    ⍝ dall-e-3 only, 'standard' or 'hd'
+        :Field public response_format←'url' ⍝ 'url' or 'b64_json'
+        :Field public size←'1024x1024'      ⍝ dall-e-2: 256x256, 512x512, 1024x1024; dall-e-3: 1024x1024, 1792x1024, 1024x1792
+        :Field public style←'vivid'         ⍝ 'vivid' or 'natural'
+        :Field public user←''               ⍝ unique identifier for end-user if applicable
+        :Field public image←''              ⍝ filename for image edit and variation endpoints
 
-        :field public OutFile←''            ⍝ filename to write image to (a la HttpCommand)
-        :field public Response←''           ⍝ response from HttpCommand
+        :Field public OutFile←''            ⍝ filename to write image to (a la HttpCommand)
+        :Field public Response←''           ⍝ response from HttpCommand
 
-        :field public API_Parameters
-        :field endpoint                     ⍝ which endpoint?  create, edit, or vary?
+        :Field public API_Parameters
+        :Field endpoint                     ⍝ which endpoint?  create, edit, or vary?
+        :Field public shared Documentation←'https://platform.openai.com/docs/api-reference/images'
 
         ∇ make
           :Access public
@@ -187,7 +203,7 @@
           r←Response←req.Run
         ∇
 
-        ∇ Show;s;url;refs;ref;img
+        ∇ ShowPics;s;url;refs;ref;img
           :Access public
           :If 0∊⍴Response
               Run
@@ -234,6 +250,7 @@
 
         :field public API_Parameters
         :field endpoint                     ⍝ which endpoint?  create, edit, or vary?
+        :field public shared Documentation←'https://platform.openai.com/docs/api-reference/audio'
 
         ∇ make
           :Access public
@@ -284,7 +301,7 @@
               args←,⊆args
               r.(file OutFile)←2↑args,(≢args)↓r.(file OutFile)
           :EndIf
-          r.API_Parameters←'file' 'model' 'language' 'prompt' 'response_format' 'tempurature' 'timestamp_granularities'
+          r.API_Parameters←'file' 'model' 'language' 'prompt' 'response_format' 'temperature' 'timestamp_granularities'
         ∇
 
         ∇ r←Translation args;name
@@ -300,7 +317,7 @@
               args←,⊆args
               r.(file OutFile)←2↑args,(≢args)↓r.(file OutFile)
           :EndIf
-          r.API_Parameters←'file' 'model' 'prompt' 'response_format' 'tempurature'
+          r.API_Parameters←'file' 'model' 'prompt' 'response_format' 'temperature'
         ∇
 
         ∇ resp←Run;req;f;ext;outfile;flag
@@ -335,10 +352,6 @@
           resp←Response←req.Run
         ∇
 
-        ∇ r←Show
-          :Access public
-          r←⎕JSON⍠'Compact' 0⊢Response.Data
-        ∇
 
     :endclass
 
@@ -371,6 +384,7 @@
 
         :field public API_Parameters←'messages' 'model' 'frequency_penalty' 'logit_bias' 'logprobs' 'top_logprobs' 'max_tokens' 'n' 'presence_penalty' 'response_format' 'seed' 'stop' 'stream' 'temperature' 'top_p' 'tools' 'tool_choice' 'user'
         :field endpoint←'chat/completions'
+        :field public shared Documentation←'https://platform.openai.com/docs/api-reference/chat'
 
         ∇ make
           :Access public
@@ -462,6 +476,7 @@
         :field public file←''               ⍝ file name for Upload
         :field public file_id←''            ⍝ file_id for Retrieve, RetrieveContent, and Delete
         :field public OutFile←''            ⍝ for retrieving a file to file instead of to the workspace
+        :field public shared Documentation←'https://platform.openai.com/docs/api-reference/files'
 
         :property id, bytes, created_at, filename, object
         :access public
@@ -596,7 +611,7 @@
           :EndIf
         ∇
 
-        ∇ r←Show;ns
+        ∇ r←ShowFile;ns
           :Access public
         ⍝ display the current file object
           ns←⎕NS''
@@ -606,47 +621,15 @@
 
     :endclass
 
-    :class Assistants
+    :class Moderations
+
         :include U
-
-        :property model, name, decription, instructions, tools, tool_resources, metadata, temperature, top_p, response_format, created_at
-        :access public
-            ∇ r←Get ipa
-              r←⍎'_',ipa.Name
-            ∇
-            ∇ Set ipa;v
-              :Select ipa.Name
-              :CaseList 'model' 'name' 'description' 'instructions' 'temperature' 'top_p' 'response_format'
-                  v←⍎'_',ipa.Name
-                  ⍎'_',ipa.Name,'←ipa.NewValue'
-                  updated←v≢ipa.NewValue
-              :Case 'tools'
-              :Case 'tool_resources'
-              :Case 'metadata'
-              :Case 'created_at'
-              :EndSelect
-            ∇
-        :endproperty
-
-        :field _model←'gpt-4o-mini'   ⍝ see https://platform.openai.com/docs/models/model-endpoint-compatibility for all models
-        :field _name←''
-        :field _description←''
-        :field _instructions←''
-        :field _tools
-        :field _tool_resources←⍬
-        :field _metadata
-        :field _temperature←1
-        :field _top_p←1
-        :field _response_format←'auto'
-        :field _created_at←0
-
-        _updated←0    ⍝ have we updated any parameters
-        _retrieved←0  ⍝ did we retrieve an existing assistant
-
-
-        :field public API_Parameters
-        :field endpoint←'assistants'
-        :field created←0
+        :field public input←'' ⍝ the text to classify
+        :field public model←'text-moderation-latest' ⍝ valid values are 'text-moderation-latest' and 'text-moderation-stable'
+        :field public Response←''
+        :field endpoint←'moderations'
+        :field API_Parameters←'input' 'model'
+        :field public shared Documentation←'https://platform.openai.com/docs/api-reference/moderations'
 
         ∇ make
           :Access public
@@ -654,70 +637,41 @@
           makeCommon
         ∇
 
-        ∇ makeCommon;parent
+        ∇ make1 args
+          :Access public
+          :Implements constructor
+          makeCommon
+          args←,⊆args
+          (input model)←2↑args,(≢args)↓input model
+        ∇
+
+        ∇ makeCommon
           parent←(⊃⊃⎕CLASS ⎕THIS).##
           :If ~parent.Initialized
               parent.Initialize
           :EndIf
-          _metadata←⎕NS''
-          _tools←⍬
         ∇
 
-        ∇ (rc data)←Create;h
-          :Access public
-          h←MakeRequest'assistants'
-          h.Command←'post'
-          'OpenAI-Beta'h.AddHeader'assistants=v2'
-          h.Params←MakeParameters'model' 'name' 'description' 'instructions' 'tools' 'tool_resources' 'metadata' 'temperature' 'top_p' 'response_format'
-          ∘∘∘
-        ∇
-
-        ∇ (rc data)←List args;limit;order;after;before
+        ∇ r←Moderation args;name
           :Access public shared
-        ⍝ args is either
-        ⍝   limit, order, after, before - all are optional, but positional
-        ⍝   a namespace with named parameters
-          args←,⊆args
-          (limit order after before)←
-         
-        ∇
-
-        ∇ (rc data)←Retrieve id
-          :Access public
-        ∇
-
-        ∇ (rc data)←Modify
-          :Access public
-        ∇
-
-        ∇ (rc data)←Delete id
-          :Access public
-        ∇
-
-        ∇ (rc data)←Add_function args;name;description;parms;ns
-          :Access public
-          args←,⊆args
-          (name description parms)←3↑args,(≢args)↓'' ''(⎕NS'')
-          :If isChar parms
-              parms←0 ⎕JSON parms
+          r←⎕NEW ⎕THIS
+          :If 9.1={⎕NC⊂,'⍵'}args ⍝ namespace?
+              :For name :In args.⎕NL ¯2
+                  r⍎name,'←args,',name
+              :EndFor
+          :Else
+              args←,⊆args
+              r.(input model)←2↑args,(≢args)↓r.(input model)
           :EndIf
-          ns←⎕NS''
-          ns.type←'function'
-          ns.function←⎕NS''
-          ns.function.(name description parameters)←name description parms
-          tools,←ns
         ∇
 
-        ∇ (rc data)←Add_code_interpreter
+        ∇ resp←Run;req;f;ns
           :Access public
-          tools,←0 ⎕JSON'{"type":"code_interpreter"}'
+          req←MakeRequest endpoint
+          req.TranslateData←1
+          req.Params←MakeParams API_Parameters
+          resp←Response←req.Run
         ∇
 
-        ∇ (rc data)←Add_file_search max_num_results
-          :Access public
-          tools,←0 ⎕JSON'{"type":"file_search"'((~0∊⍴max_num_results)/',"max_num_results":',⍕max_num_results),'}'
-        ∇
-
-    :endclass ⍝ assistants
-
+    :endclass ⍝ Moderations
 :EndNamespace

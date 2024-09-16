@@ -1,12 +1,18 @@
 site_name: OpenAI
 repo_url: https://github.com/dyalog/OpenAI
-repo_name: Dyalog/HttpCommand
+repo_name: Dyalog/OpenAI
 dev_addr: 127.0.0.1:22222
-copyright: Made with <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener"><strong>Material for MkDocs</strong></a><br/>Copyright &copy; 2015-2024 <strong><a href="https://dyalog.com" target="_blank" rel="noopener">Dyalog, LTD</a></strong>
+copyright: <div class="left">Made with <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener"><strong>Material for MkDocs</strong></a>.&nbsp;</div><div class="right">Contents copyright &copy;2024 <strong><a href="https://dyalog.com" target="_blank" rel="noopener">Dyalog, LTD</a></strong></div>
 nav:
     - Overview: 'index.md'
-    - 'User Guide': 'userguide.md'
-    - Reference: 'reference.md'
+    - 'User Guide and Reference': 
+      - 'Using OpenAI': 'userguide.md'
+      - 'Audio Endpoint' : 'audio.md'
+      - 'Chat Endpoint' : 'chat.md'
+      - 'Files Endpoint' : 'files.md'
+      - 'Image Endpoint' : 'image.md'
+      - 'Models Endpoint' : 'models.md'
+      - 'Moderations Endpoint' : 'moderations.md'
     - About: 
       - License: 'LICENSE.md' # complete
       - 'Release Notes': 'release-notes.md'
@@ -17,6 +23,7 @@ theme:
   features:
     - navigation.sections
     - navigation.instant
+    - content.footnote.tooltips
   name: material
 
 extra: 
@@ -53,6 +60,12 @@ markdown_extensions:
   - abbr
   - footnotes
   - attr_list 
+  - def_list
+  - markdown_tables_extended
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true 
   - pymdownx.emoji:
       emoji_index: !!python/name:materialx.emoji.twemoji
       emoji_generator: !!python/name:materialx.emoji.to_svg

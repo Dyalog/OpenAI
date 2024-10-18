@@ -37,7 +37,7 @@
       :EndIf
     ∇
 
-    ∇ resp←models;req
+    ∇ resp←Models;req
     ⍝ return information about OpenAI models
       :Access public shared
       :If ~Initialized
@@ -46,7 +46,7 @@
       req←HttpCommand.New'get'
       req.(BaseURL URL)←BaseURL'models'
       req.(AuthType Auth)←'Bearer'APIKey
-      req.TranlateData←1
+      req.TranslateData←1
       resp←req.Run
     ∇
 

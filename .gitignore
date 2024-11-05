@@ -1,3 +1,6 @@
 *.dlf
 *.rng*
 site/
+tatin-dependencies/*
+!tatin-dependencies/apl-buildlist.json
+!tatin-dependencies/apl-dependencies.txt

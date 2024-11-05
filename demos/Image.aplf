@@ -1,0 +1,25 @@
+ (rc msg)←Image description;req;resp;text;⎕ML;⎕IO
+⍝ This demonstrates using OpenAI to generate an image file from a description
+⍝ description is text describing to the image to generate
+⍝ rc is the return code and is 0 if the image generation was successful, otherwise it will be non-0
+⍝ msg is either the base64-encoded image data if the generation was successful or a message explaining why the generation failed
+ (⎕ML ⎕IO)←1 1
+ rc←¯1
+
+⍝ Check that OpenAI is present
+ :If 9.1≠⎕NC⊂'OpenAI' ⋄ →0⊣text←'OpenAI is not loaded, please run Setup' ⋄ :EndIf
+
+⍝ Make sure the OpenAI.APIKey is set
+ :If 0∊⍴OpenAI.APIKey ⋄ →0⊣text←'OpenAPI.APIKey has not been set, please run Setup' ⋄ :EndIf
+
+⍝ create the request
+ req←OpenAI.Image.Create description
+ req.size←'512x512'
+ req.response_format←'b64_json'
+
+⍝ run the request, capture the response
+ resp←req.Run
+ :If 0≠resp.rc ⋄ (rc msg)←resp.(rc msg)
+ :ElseIf 200≠resp.HttpStatus ⋄ →0⊣(rc msg)←(resp.HttpStatus)({0::⍵.HttpStatus ⋄ ⍵.Data.error.message}resp)
+ :Else ⋄ (rc msg)←0 (⊃resp.Data.data.b64_json)
+ :EndIf

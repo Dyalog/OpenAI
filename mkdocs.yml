@@ -5,6 +5,8 @@ dev_addr: 127.0.0.1:22222
 copyright: <div class="left">Made with <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener"><strong>Material for MkDocs</strong></a>.&nbsp;</div><div class="right">Contents copyright &copy;2024 <strong><a href="https://dyalog.com" target="_blank" rel="noopener">Dyalog, LTD</a></strong></div>
 nav:
     - Overview: 'index.md'
+    - "Quick Start": 'quickstart.md'
+    - "Demos": 'demos.md'
     - 'User Guide and Reference': 
       - 'Using OpenAI': 'userguide.md'
       - 'Audio Endpoint' : 'audio.md'

@@ -1,0 +1,35 @@
+ Setup;url;rc;msg;⎕IO;⎕ML;prompt;key;resp
+ (⎕ML ⎕IO)←1
+ :If 9.1≠⎕NC⊂'OpenAI' ⍝ is OpenAI here?
+     :Trap 0
+         {}⎕SE.UCMD'GET ',url←'https://github.com/Dyalog/OpenAI/blob/main/source/OpenAI.apln'
+     :Else
+         ⎕←'We encountered a ',⎕DMX.EM,' when attempting to download OpenAI from ',url
+         ⎕←'Please download OpenAI.apln manually, import it into your APL session, and rerun Setup'
+         →0
+     :EndTrap
+ :EndIf
+ :If ~OpenAI.Initialized ⍝ has OpenAI been initialized?
+     :If 0≠⊃(rc msg)←OpenAI.Initialize ⍝ were we able to initialize OpenAI?
+         →0⊣⎕←'We were unable to initialize OpenAI due to "',msg,'"'
+     :EndIf
+ :EndIf
+ :If 0∊⍴OpenAI.APIKey
+     key←{inp←⍞⊣⍞←⍵ ⋄ inp↓⍨+/∧\=⌿↑inp ⍵}'Enter your OpenAI API key or the environment variable that contains your API key: '
+     :If 0∊⍴2 ⎕NQ #'GetEnvironment'key
+         OpenAI.APIKey←key
+     :Else
+         OpenAI.HttpCommand.HeaderSubstitution←'%'
+         OpenAI.APIKey←'%',key,'%'
+     :EndIf
+ :EndIf
+
+ ⍝ try OpenAI to see that everything is set up properly
+ resp←OpenAI.Models
+ :If 0≠resp.rc ⋄ msg←resp.msg
+ :OrIf 200≠resp.HttpStatus ⋄ msg←{0::⍵.HttpMessage ⋄ ⍵.Data.error.message}resp
+     ⎕←'The OpenAI interface failed due to "',msg,'"'
+     OpenAI.APIKey/⍨←401≠resp.HttpStatus
+ :Else
+     ⎕←'The OpenAI interface is set up and ready for use'
+ :EndIf

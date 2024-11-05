@@ -1,0 +1,23 @@
+ Chat;⎕ML;⎕IO;inp;system;c;user;resp;msg
+ (⎕ML ⎕IO)←1 1
+
+⍝ Check that OpenAI is present
+ :If 9.1≠⎕NC⊂'OpenAI' ⋄ →0⊣⎕←'OpenAI is not loaded, please run Setup' ⋄ :EndIf
+
+⍝ Make sure the OpenAI.APIKey is set
+ :If 0∊⍴OpenAI.APIKey ⋄ →0⊣⎕←'OpenAPI.APIKey has not been set, please run Setup' ⋄ :EndIf
+
+ inp←{inp←⍞⊣⍞←⍵ ⋄ inp↓⍨+/∧\=⌿↑inp ⍵}
+
+ system←inp'Describe the assistant you would like to chat with: '
+ c←OpenAI.Chat.Completion system
+
+loop:→0⍴⍨0∊⍴user←inp'Enter user message: '
+ c.User user
+ resp←c.Run
+
+ :If 0≠resp.rc ⋄ msg←'** OpenAI Chat request failed due to: ',resp.msg
+ :ElseIf 200≠resp.HttpStatus ⋄ msg←{0::⍵.HttpStatus ⋄ ⍵.Data.error.message}resp
+ :Else ⋄ →loop⊣⎕←1⌽(2⍴⎕UCS 13),80 OpenAI.U.Wrap (⊢/c.messages).content
+ :EndIf
+ →loop⊣⎕←'** ',msg

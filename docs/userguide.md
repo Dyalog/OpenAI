@@ -1,11 +1,30 @@
-## Getting Started
-### Register and Create an OpenAI Project
-To use OpenAI API, you will need to:
 
-* [Create an account with OpenAI](https://platform.openai.com/signup). 
-* Provide billing/payment information.
-* Create a project
-* Create one or more project API key(s). You will need a project API key to be able to access the OpenAI API via `OpenAI`. Protect this API key, do not publish it in GitHub or other public places.
+
+Whenever you see OpenAI formatted as `OpenAI`, it is referring to the Dyalog OpenAI API interface. `OpenAI` is a Dyalog APL namespace which contains code that implements interfaces to OpenAI API endpoints.
+
+## Getting Started
+To use the OpenAI API, you will need to:
+
+* Create an OpenAI account
+* Optionally, create an OpenAI project
+* Create an OpenAI API key - this will enable you to make calls to the OpenAI API
+* Download `OpenAI`
+* Configure `OpenAI`
+
+### Create an OpenAI account
+* Navigate to OpenAI's [quickstart page](https://platform.openai.com/docs/quickstart). 
+* Click "Sign up" and follow the instructions to create your account
+
+### Optionally, create an OpenAI project
+* Optionally, create an OpenAI project. If you don't create a project, OpenAI will use a "Default project".
+* Create one or more project API key(s). You will need a project API key to be able to access the OpenAI API via `OpenAI`. Protect this API key, **do not** publish it on GitHub or other public places.
+    * Navigate to OpenAI's [API keys page](https://platform.openai.com/api-keys)
+    * Click "+ Create a new secret key"
+    * Click "Create secret key"
+    * Make sure you copy the generated secret key! **This will be the only time it will be displayed.**
+    * OpenAI recommends that you set an environment variable to hold your API key.  This way you will not expose the key in your APL code.<br>If you're using Linux, do: `export OPENAI_API_KEY="your_api_key_here"`<br>If you're using Windows, under PowerShell do: `setx OPENAI_API_KEY "your_api_key_here"`
+
+    * 
 ### Obtain `OpenAI`
 Download [`OpenAI.apln`](https://github.com/Dyalog/OpenAI/releases/latest) from GitHub.
 ### Configure `OpenAI`

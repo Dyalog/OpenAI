@@ -1,0 +1,24 @@
+ Play args;⎕ML;⎕IO;data;h;html
+ (⎕ML ⎕IO)←1 1
+⍝ Plays an audio file
+⍝ args is either the name of a .mp3 audio file to play
+⍝             or the result from Speech which is a return code followed by a message
+⍝                If the return code is 0, the message is the name of a .mp3 audio file
+⍝                If the return code is not 0, the message is an indication of what went wrong
+⍝ auto is optional and indicates whether to automatically play the audio
+ :If 2=|≡args
+     :If 0≠⊃args
+         →0⊣⎕←'Speech was unable to convert the your text due to ',⍕args
+     :Else ⋄ args←2⊃args
+     :EndIf
+ :EndIf
+
+⍝ now try to open an HTMLRenderer to play the audiofile
+ :Trap 0
+     data←OpenAI.HttpCommand.Base64Encode{(⎕NUNTIE t)⊢⎕NREAD t,83,2↑t←⍵ ⎕NTIE 0}args
+     html←'<audio id="myAudio" controls src="data:audio/mpeg;base64,',data,'"/>'
+     'h'⎕WC'HTMLRenderer'('Size'(15 25))('HTML'html)
+     {}⎕DQ h
+ :Else
+     →0⊣⎕←⎕DMX.('A ',EM,' (',Message,') occurred while trying to play the audio file')
+ :EndTrap

@@ -1,0 +1,32 @@
+ (rc msg)←audioFile Speech text;file;⎕IO;⎕ML;req;resp;data;h
+⍝ This demonstrates using OpenAI to convert text into an audio file in its native language
+⍝ audioFile is the name of the audio file to be written, If you do not give a file extension, .mp3 will be used
+⍝ text is the text to be converted. If text begins with 'file://', the remainder of text is assumed to be a file name containing the text to be converted.
+⍝ rc is the return code and is 0 if the conversion was successful, otherwise it will be non-0
+⍝ msg is either the fill name of the audio file if the conversion was successful or a message explaining why the conversion failed
+⍝ Assumes that the OpenAI interface is either in the same namespace or the parent namespace and has been initialized
+ (⎕IO ⎕ML)←1
+ rc←¯1
+
+⍝ Check that OpenAI is present
+ :If 9.1≠⎕NC⊂'OpenAI' ⋄ →0⊣msg←'OpenAI is not loaded, please run Setup' ⋄ :EndIf
+
+⍝ Make sure the OpenAI.APIKey is set
+ :If 0∊⍴OpenAI.APIKey ⋄ →0⊣msg←'OpenAPI.APIKey has not been set, please run Setup' ⋄ :EndIf
+
+⍝ Check if the text is coming from a file
+ :If 'file://'≡7↑text
+     :If ⎕NEXISTS file←7↓text ⋄ text←⊃⎕NGET file
+     :Else ⋄ →0⊣msg←'Input file "',file,' was not found'
+     :EndIf
+ :EndIf
+
+⍝ create the request
+ req←OpenAI.Audio.Speech text(audioFile 1)
+
+⍝ run the request, capture the response
+ resp←req.Run
+ :If 0≠resp.rc ⋄ (rc msg)←resp.(rc msg)
+ :ElseIf 200≠resp.HttpStatus ⋄ →0⊣(rc text)←(resp.HttpStatus(msg,' - ',HttpMessage))
+ :Else ⋄ (rc msg)←0 resp.OutFile
+ :EndIf

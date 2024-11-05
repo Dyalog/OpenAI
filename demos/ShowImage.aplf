@@ -1,0 +1,21 @@
+ ShowImage args;⎕ML;⎕IO;h
+ (⎕ML ⎕IO)←1 1
+⍝ Shows text in an HTMLRenderer window
+⍝ args is either the text to Show
+⍝             or the result from Transcription or Translation which is a return code followed by a message
+⍝                If the return code is 0, the message is the text to show
+⍝                If the return code is not 0, the message is an indication of what went wrong
+ :If 2=|≡args
+     :If 0≠⊃args
+         →0⊣⎕←'Unable to create image due to ',⍕args
+     :Else ⋄ args←2⊃args
+     :EndIf
+ :EndIf
+
+⍝ now try to open an HTMLRenderer to display the image
+ :Trap 0
+     'h'⎕WC'HTMLRenderer'('Coord' 'Pixel')('Size'(720 700))('HTML'('<img src="data:image/png;base64,',args,'"/>'))
+     {}⎕DQ h
+ :Else
+     →0⊣⎕←⎕DMX.('A ',EM,' (',Message,') occurred while trying to play the audio file')
+ :EndTrap

@@ -1,0 +1,33 @@
+ (rc text)←Transcription args;oref;req;resp;audioFile;language;h
+⍝ This demonstrates using OpenAI to transcribe an audio file to its native language text
+⍝ args is audiofile [language]
+⍝ audioFile is the path to a previously recorded audio file.  .mp3 is preferred
+⍝ language is the optional ISO 639-1 language code for the file
+⍝ rc is the return code and is 0 if the transcription was successful, otherwise it will be non-0
+⍝ text is either the transcribed text if the transcription was successful or a message explaining why the transcription failed
+⍝ Assumes that the OpenAI interface is either in the same namespace or the parent namespace and has been initialized
+
+ rc←¯1
+
+⍝ Check that OpenAI is present
+ :If 9.1≠⎕NC⊂'OpenAI' ⋄ →0⊣text←'OpenAI is not loaded, please run Setup' ⋄ :EndIf
+
+⍝ Make sure the OpenAI.APIKey is set
+ :If 0∊⍴OpenAI.APIKey ⋄ →0⊣text←'OpenAPI.APIKey has not been set, please run Setup' ⋄ :EndIf
+
+⍝ Split args
+ (audioFile language)←2↑(,⊆args),⊂''
+
+⍝ Check that the audio file exists
+ :If ~⎕NEXISTS audioFile ⋄ →0⊣text←'Audio file "',audioFile,'" not found' ⋄ :EndIf
+
+⍝ create the request
+ req←OpenAI.Audio.Transcription audioFile
+ req.language←language
+
+⍝ run the request, capture the response
+ resp←req.Run
+ :If 0≠resp.rc ⋄ (rc text)←resp.(rc msg)
+ :ElseIf 200≠resp.HttpStatus ⋄ (rc text)←(resp.HttpStatus(msg,' - ',HttpMessage))
+ :Else ⋄ (rc text)←0 resp.Data.text
+ :EndIf

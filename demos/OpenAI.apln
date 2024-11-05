@@ -3,11 +3,6 @@
 ⍝ Requires: HttpCommand v5.6 or later
 
     (⎕ML ⎕IO)←1
-
-    ∇ version←Version
-      version←'OpenAI' '0.4.0' '2024-11-05'
-    ∇
-
     APIKey←''                             ⍝ an API key is required to use the OpenAI API
     BaseURL←'https://api.openai.com/v1/'  ⍝ all endpoints start here
     HttpCommand←''

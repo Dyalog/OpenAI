@@ -1,0 +1,31 @@
+ Linguist;⎕ML;⎕IO;inp;system;c;user;resp;msg;audio;tmpfile
+ (⎕ML ⎕IO)←1 1
+
+⍝ Check that OpenAI is present
+ :If 9.1≠⎕NC⊂'OpenAI' ⋄ →0⊣⎕←'OpenAI is not loaded, please run Setup' ⋄ :EndIf
+
+⍝ Make sure the OpenAI.APIKey is set
+ :If 0∊⍴OpenAI.APIKey ⋄ →0⊣⎕←'OpenAPI.APIKey has not been set, please run Setup' ⋄ :EndIf
+
+ inp←{inp←⍞⊣⍞←⍵ ⋄ inp↓⍨+/∧\=⌿↑inp ⍵}
+ tmpfile←(739⌶0),'/linguist.mp3' ⍝ temp file for audio
+
+ →end⍴⍨0∊⍴system←inp'What output language would you like? '
+ audio←'y'=⊃⎕C inp'Would you like audio output (y/N)? '
+ c←OpenAI.Chat.Completion('translate the input into ',system)
+
+loop:→end⍴⍨0∊⍴user←inp'Text to translate: '
+ c.User user
+ resp←c.Run
+
+ :If 0≠resp.rc ⋄ msg←'** OpenAI Chat request failed due to: ',resp.msg
+ :ElseIf 200≠resp.HttpStatus ⋄ msg←{0::⍵.HttpStatus ⋄ ⍵.Data.error.message}resp
+ :Else
+     ⎕←(⎕UCS 13),⍨80 OpenAI.U.Wrap msg←(⊢/c.messages).content
+     :If audio
+         Play tmpfile Speech msg
+     :EndIf
+     →loop
+ :EndIf
+ →loop⊣⎕←'** ',msg
+end:1 ⎕NDELETE tmpfile

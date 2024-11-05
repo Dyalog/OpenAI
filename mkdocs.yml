@@ -38,6 +38,7 @@ extra_css:
 
 plugins:
   - search
+  - mike
   - print-site:
       add_to_navigation: true
       print_page_title: 'Print'

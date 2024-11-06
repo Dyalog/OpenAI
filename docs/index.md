@@ -17,8 +17,8 @@
 * [Moderations](./userguide.md#moderations) - Classify text input as potentially harmful
 
 ## Forthcoming Endpoints
-### Expected in October 2024
-OpenAI has released, in beta, version 2 of their Assistants and related endpoints. We expect to have completed their development in `OpenAI` in October 2024. 
+### Expected in Q4 2024
+OpenAI has released, in beta, version 2 of their Assistants and related endpoints. We expect to have completed their development in `OpenAI` in the 4th quarter of 2024. 
 
 * Assistants - Build assistants that can call models and use tools to perform tasks. 
 * Threads  - Create threads that assistants can interact with.
@@ -27,7 +27,7 @@ OpenAI has released, in beta, version 2 of their Assistants and related endpoint
 * Vector Stores - Used to store files for use be the OpenAI's `file_search` tool.
 * Vector Store Files - Represent files inside a vector store.
 ### Future
-Beyond October 2024, we expect to add support for the following endpoints.
+Beyond 2024, we expect to add support for the following endpoints.
 
 * Vector Store File Batches - Represent operations to add multiple files to a vector store.
 * Run Steps - Represents the steps (model and tool calls) taken during the run.

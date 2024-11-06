@@ -14,7 +14,7 @@ Working on it…
 #.main.demos
 ```
 
-If this doesn't work for you, then you can download and unzip [https://github.com/Dyalog/OpenAI/archive/refs/heads/main.zip](https://github.com/Dyalog/OpenAI/archive/refs/heads/main.zip).
+If this doesn't work for you, then you can download and unzip [demos.zip](https://github.com/Dyalog/OpenAI/releases/latest) from GitHub.
 Using the folder name that you unzipped into, use `]link.import` to import the demos.
 
 ```

@@ -1,4 +1,4 @@
-:Namespace OpenAI
+﻿:Namespace OpenAI
 ⍝ This class implements an interface to the OpenAI API
 ⍝ Requires: HttpCommand v5.6 or later
 
@@ -121,12 +121,13 @@
         :Field public prompt←''
         :Field public model←'dall-e-2'      ⍝ 'dall-e-2' or 'dall-e-3'
         :Field public n←1                   ⍝ integer 1-10, dall-e-3 can only use 1
-        :Field public quality←'standard'    ⍝ dall-e-3 only, 'standard' or 'hd'
+        :Field public quality←'auto'        ⍝ dall-e-3 only, 'standard' or 'hd'
         :Field public response_format←'url' ⍝ 'url' or 'b64_json'
         :Field public size←'1024x1024'      ⍝ dall-e-2: 256x256, 512x512, 1024x1024; dall-e-3: 1024x1024, 1792x1024, 1024x1792
-        :Field public style←'vivid'         ⍝ 'vivid' or 'natural'
+        :Field public style←''              ⍝ dall-e-3 only, 'vivid' or 'natural'
         :Field public user←''               ⍝ unique identifier for end-user if applicable
         :Field public image←''              ⍝ filename for image edit and variation endpoints
+        :Field public req
 
         :Field public OutFile←''            ⍝ filename to write image to (a la HttpCommand)
         :Field public Response←''           ⍝ response from HttpCommand
@@ -167,7 +168,7 @@
               args←,⊆args
               r.(prompt OutFile style)←3↑args,(≢args)↓r.(prompt OutFile style)
           :EndIf
-          r.API_Parameters←'prompt' 'model' 'n' 'quality' 'response_format' 'size' 'style' 'user'
+          r.API_Parameters←'prompt' 'model' 'n' 'style' 'response_format' 'size' 'style' 'user'
         ∇
 
         ∇ r←Edit args
@@ -199,7 +200,7 @@
           r.API_Parameters←'image' 'model' 'n' 'response_format' 'size' 'user'
         ∇
 
-        ∇ r←Run;req;f
+        ∇ r←Run;f
           :Access public
           req←MakeRequest endpoint
           :If (⊂endpoint)∊'images/edits' 'images/variations'
